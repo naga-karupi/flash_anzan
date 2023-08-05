@@ -45,9 +45,38 @@ public:
 
 	void update() override {
 		if (KeySpace.down()) {
-			changeScene(U"CountDownScene");
+			changeScene(U"CountDownScene", 0ms);
 		}
 	}
+};
+
+class CountDownScene : public App::Scene {
+	Stopwatch stopwatch;
+	Font sec_font{ FontMethod::MSDF, 40, Typeface::Bold };
+
+public:
+	CountDownScene(const InitData& init) : IScene(init), stopwatch(StartImmediately::Yes) {
+		//pass
+	}
+
+	~CountDownScene() {
+		//pass
+	}
+
+	void draw() const override {
+		const Seconds sec = 3s - Seconds(stopwatch.s());
+		if(sec != 0s)
+			sec_font(U"{}"_fmt(sec.count())).drawAt(50, Vec2{ 400, 300 }, ColorF{ 1.0, 1.0, 1.0 });
+		else
+			sec_font(U"Start!").drawAt(50, Vec2{ 400, 300 }, ColorF{ 1.0, 1.0, 1.0 });
+	}
+
+	void update() override {
+		if (stopwatch.s() >= 4) {
+			changeScene(U"PlayGameScene", 0ms);
+		}
+	}
+
 };
 
 
@@ -60,6 +89,9 @@ void Main()
 
 	manager.add<Title>(U"Title");
 	manager.add<GameWaitingScene>(U"GameWaitingScene");
+	manager.add<CountDownScene>(U"CountDownScene");
+
+	const Seconds sec = 2s - 1s;
 	
 	while (System::Update())
 	{
