@@ -23,7 +23,7 @@ void Main()
 
 	// チェックボックスの状態 | Checkbox state
 	bool checked = false;
-
+	
 	// プレイヤーの移動スピード | Player's movement speed
 	double speed = 200.0;
 
