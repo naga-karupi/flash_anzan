@@ -27,6 +27,7 @@ public:
 };
 
 class GameWaitingScene : public App::Scene {
+	Font description_font{ FontMethod::MSDF, 40, Typeface::Bold };
 
 public:
 	GameWaitingScene(const InitData& init) : IScene(init){
@@ -39,14 +40,17 @@ public:
 
 	void draw()const override {
 		Scene::SetBackground(ColorF{ 0.0, 0.0, 0.2 });
+		description_font(U"　　space キーを押すと\nカウントダウンを開始します。").draw(Arg::center = Vec2{ 400, 300 }, ColorF{1.0, 1.0, 1.0});
 	}
 
 	void update() override {
-		if (MouseL.down()) {
-			changeScene(U"Title");
+		if (KeySpace.down()) {
+			changeScene(U"CountDownScene");
 		}
 	}
 };
+
+
 
 void Main()
 {
