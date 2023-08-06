@@ -1,6 +1,12 @@
 ﻿# include <Siv3D.hpp> // OpenSiv3D v0.6.10
 
-using App = SceneManager<String>;
+struct GameInfo{
+	int digit_num;
+	int phase_num;
+	SecondsF all_seconds;
+};
+
+using App = SceneManager<String, GameInfo>;
 
 class Title : public App::Scene {
 	Font title_font{ FontMethod::MSDF, 48, Typeface::Bold };
@@ -20,10 +26,66 @@ public:
 	}
 
 	void update() override {
-		if (SimpleGUI::Button(U"始める", Vec2{ 20, 420 }, 120)) {
+		if (SimpleGUI::Button(U"easy", Vec2{ 20, 420 }, 120)) {
+			getData().all_seconds = 10s;
+			getData().digit_num = 1;
+			getData().phase_num = 10;
 			changeScene(U"GameWaitingScene");
 		}
+
+		if (SimpleGUI::Button(U"hard", Vec2{ 160, 420 }, 120)) {
+			getData().all_seconds = 10s;
+			getData().digit_num = 1;
+			getData().phase_num = 10;
+			changeScene(U"GameWaitingScene");
+		}
+
+		if (SimpleGUI::Button(U"custom", Vec2{ 300, 420 }, 120)) {
+			changeScene(U"Custom", 0s);
+		}
 	}
+};
+
+class Custom: public App::Scene {
+public:
+	TextEditState all_seconds;
+	TextEditState digit_num;
+	TextEditState phase_num;
+
+	Custom(const InitData& init) : IScene(init) {
+		all_seconds.text = U"10";
+		digit_num.text = U"1";
+		phase_num.text = U"10";
+	}
+
+	~Custom() {
+		//pass
+	}
+
+	void draw()const override {
+		
+	}
+
+	void update() override {
+		SimpleGUI::TextBox(all_seconds, Vec2{ 100,100 });
+		SimpleGUI::TextBox(digit_num, Vec2{ 100,150 });
+		SimpleGUI::TextBox(phase_num, Vec2{ 100,200 });
+
+		if (SimpleGUI::Button(U"Start", Vec2{ 300, 200 })) {
+			if (!all_seconds.text.isEmpty()
+				&& !digit_num.text.isEmpty()
+				&& !phase_num.text.isEmpty()) {
+
+				getData().all_seconds = SecondsF(Parse<double>(all_seconds.text));
+				getData().digit_num = Parse<int>(digit_num.text);
+				getData().phase_num = Parse<int>(phase_num.text);
+
+				changeScene(U"GameWaitingScene", 0s);
+			}
+		}
+
+	}
+
 };
 
 class GameWaitingScene : public App::Scene {
@@ -79,6 +141,12 @@ public:
 
 };
 
+class PlayGameScene : public App::Scene {
+
+public:
+
+};
+
 
 
 void Main()
@@ -88,6 +156,7 @@ void Main()
 	App manager;
 
 	manager.add<Title>(U"Title");
+	manager.add<Custom>(U"Custom");
 	manager.add<GameWaitingScene>(U"GameWaitingScene");
 	manager.add<CountDownScene>(U"CountDownScene");
 
