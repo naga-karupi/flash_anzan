@@ -206,7 +206,7 @@ public:
 	void draw() const override {
 		int show_phase = stopwatch.sF() / one_pannel_sec.count();
 
-		if (show_phase >= phase_nums.size()) {
+		if (show_phase >= phase_nums.size() || (show_phase + 1) * one_pannel_sec.count() - stopwatch.sF() < 0.1) {
 			return;
 		}
 
@@ -263,6 +263,20 @@ public:
 
 		if (SimpleGUI::ButtonAt(U"解答する", Vec2{ 400, 350 })
 			&& !text.text.isEmpty()) {
+
+			bool is_all_num = true;
+
+			for (auto& t : text.text) {
+				if (t < U'0' || t > U'9') {
+					is_all_num = false;
+					break;
+				}
+			}
+
+			if (!is_all_num) {
+				return;
+			}
+
 			getData().answer = Parse<int>(text.text);
 
 			if (getData().answer <= 0) {
