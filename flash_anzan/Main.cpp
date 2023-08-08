@@ -10,12 +10,55 @@ struct AllInfo {
 	GameInfo info;
 	int answer;
 	int correct_ans;
+	String mode;
 };
 
 static constexpr auto white_color = ColorF{1.0, 1.0, 1.0};
 static constexpr auto background_color = ColorF{ 0.0, 0.0, 0.2 };
 
 using App = SceneManager<String, AllInfo>;
+
+class ESCInterrupter : public App::Scene {
+	bool is_escape = false;
+	Font pause_font{ FontMethod::MSDF, 48, Typeface::Bold };
+
+public:
+	ESCInterrupter(const InitData& init) : IScene(init) {
+
+	}
+
+	Array<Stopwatch> stopwatches;
+
+	void interruptDraw() const {
+		if (is_escape) {
+
+		}
+	}
+
+	void interruptUpdate() {
+		bool is_rise;
+		is_escape ^= is_rise = KeyS.down();
+
+		if (is_rise) {
+			for (auto& stopwatch : stopwatches) {
+				if (not stopwatch.isStarted())
+					continue;
+
+				stopwatch.isRunning() ? stopwatch.pause() : stopwatch.resume();
+			}
+		}
+
+
+		if (is_escape) {
+//			Rect(0, 0, 800, 600).draw(ColorF{ 0.0, 0.0, 0.2, 0.5 });
+			pause_font(U"Pause").drawAt(Vec2{ 400, 200 });
+
+			if (SimpleGUI::ButtonAt(U"タイトルに戻る", Vec2{ 400, 400 })) {
+				changeScene(U"Title");
+			}
+		}
+	}
+};
 
 /// @brief タイトル画面を表示するクラス
 class Title : public App::Scene {
@@ -32,7 +75,7 @@ public:
 
 	void draw()const override {
 		Scene::SetBackground(background_color);
-		title_font(U"FLASH 暗算").draw(64, Vec2{ 20, 340 }, white_color);
+		title_font(U"FLASH 暗算").draw(64, Vec2{ 20, 330 }, white_color);
 	}
 
 	void update() override {
@@ -40,6 +83,7 @@ public:
 			getData().info.all_seconds = 10s;
 			getData().info.digit_num = 1;
 			getData().info.phase_num = 10;
+			getData().mode = U"easy";
 			changeScene(U"GameWaitingScene");
 		}
 
@@ -47,6 +91,7 @@ public:
 			getData().info.all_seconds = 7.5s;
 			getData().info.digit_num = 3;
 			getData().info.phase_num = 10;
+			getData().mode = U"hard";
 			changeScene(U"GameWaitingScene");
 		}
 
@@ -56,7 +101,7 @@ public:
 	}
 };
 
-/// @brief 任意の数値を背ってするための画面
+/// @brief 任意の数値を設定するための画面
 class Custom: public App::Scene {
 public:
 	TextEditState all_seconds;
@@ -78,22 +123,22 @@ public:
 	}
 
 	void draw()const override {
-		description(U"全表示時間：").draw(20, Vec2{ 100, 100 }, white_color);
-		description(U"桁数　　　：").draw(20, Vec2{ 100, 150 }, white_color);
-		description(U"表示数　　：").draw(20, Vec2{ 100, 200 }, white_color);
+		description(U"全表示時間：").draw(20, Vec2{ 215, 220 }, white_color);
+		description(U"桁数　　　：").draw(20, Vec2{ 215, 270 }, white_color);
+		description(U"表示数　　：").draw(20, Vec2{ 215, 320 }, white_color);
 		
 	}
 
 	void update() override {
-		SimpleGUI::TextBox(all_seconds, Vec2{ 250, 100 });
-		SimpleGUI::TextBox(digit_num, Vec2{ 250, 150 });
-		SimpleGUI::TextBox(phase_num, Vec2{ 250, 200 });
+		SimpleGUI::TextBox(all_seconds, Vec2{ 365, 220 });
+		SimpleGUI::TextBox(digit_num, Vec2{ 365, 270 });
+		SimpleGUI::TextBox(phase_num, Vec2{ 365, 320 });
 
 		if (SimpleGUI::Button(U"Back", Vec2{ 20, 20 })) {
 			changeScene(U"Title");
 		}
 
-		if (SimpleGUI::Button(U"Start", Vec2{ 300, 300 })) {
+		if (SimpleGUI::Button(U"Start", Vec2{ 360, 400 })) {
 			if (!all_seconds.text.isEmpty()
 				&& !digit_num.text.isEmpty()
 				&& !phase_num.text.isEmpty()) {
@@ -110,6 +155,7 @@ public:
 				getData().info.all_seconds = SecondsF(all_seconds_d);
 				getData().info.digit_num = digit_num_i;
 				getData().info.phase_num = phase_num_i;
+				getData().mode = U"custom";
 
 				changeScene(U"GameWaitingScene", 0s);
 			}
@@ -120,11 +166,11 @@ public:
 };
 
 /// @brief ゲーム開始前の一時待機画面
-class GameWaitingScene : public App::Scene {
+class GameWaitingScene : public ESCInterrupter {
 	Font description_font{ FontMethod::MSDF, 40, Typeface::Bold };
 
 public:
-	GameWaitingScene(const InitData& init) : IScene(init){
+	GameWaitingScene(const InitData& init) : ESCInterrupter(init){
 		Scene::SetBackground(background_color);
 	}
 
@@ -134,23 +180,28 @@ public:
 
 	void draw()const override {
 		description_font(U"　　space キーを押すと\nカウントダウンを開始します。").draw(Arg::center = Vec2{ 400, 300 }, white_color);
+
+		interruptDraw();
 	}
 
 	void update() override {
 		if (KeySpace.down()) {
 			changeScene(U"CountDownScene", 0ms);
 		}
+
+		interruptUpdate();
 	}
 };
 
 /// @brief カウントダウン・スタート表示
-class CountDownScene : public App::Scene {
-	Stopwatch stopwatch;
+class CountDownScene : public ESCInterrupter {
 	Font sec_font{ FontMethod::MSDF, 40, Typeface::Bold };
 
 public:
-	CountDownScene(const InitData& init) : IScene(init), stopwatch(StartImmediately::Yes) {
+	CountDownScene(const InitData& init) : ESCInterrupter(init) {
 		Scene::SetBackground(background_color);
+		stopwatches.push_back(Stopwatch());
+		stopwatches[0].start();
 	}
 
 	~CountDownScene() {
@@ -158,26 +209,29 @@ public:
 	}
 
 	void draw() const override {
-		const Seconds sec = 3s - Seconds(stopwatch.s());
+		const Seconds sec = 3s - Seconds(stopwatches[0].s());
 		if(sec != 0s)
-			sec_font(Format(sec.count())).drawAt(50, Vec2{ 400, 300 }, ColorF{ 1.0, 1.0, 1.0 });
+			sec_font(Format(sec.count())).drawAt(50, Vec2{ 400, 300 }, white_color);
 		else
-			sec_font(U"Start!").drawAt(50, Vec2{ 400, 300 }, ColorF{ 1.0, 1.0, 1.0 });
+			sec_font(U"Start!").drawAt(50, Vec2{ 400, 300 }, white_color);
+
+		interruptDraw();
 	}
 
 	void update() override {
-		if (stopwatch.s() >= 4) {
+		if (stopwatches[0].s() >= 4) {
 			changeScene(U"PlayGameScene", 0ms);
 		}
+
+		interruptUpdate();
 	}
 
 };
 
 /// @brief 実際のゲームの表示
-class PlayGameScene : public App::Scene {
+class PlayGameScene : public ESCInterrupter {
 
 	Array<int> phase_nums;
-	Stopwatch stopwatch;
 	int now_phase;
 
 	SecondsF one_pannel_sec;
@@ -189,14 +243,15 @@ class PlayGameScene : public App::Scene {
 
 public:
 	PlayGameScene(const InitData& init)
-		: IScene(init), phase_nums(getData().info.phase_num),
+		: ESCInterrupter(init), phase_nums(getData().info.phase_num),
 		now_phase(0), one_pannel_sec(getData().info.all_seconds / getData().info.phase_num) {
 
 		Scene::SetBackground(background_color);
 
 		set_rand();
 
-		stopwatch.start();
+		stopwatches.push_back(Stopwatch());
+		stopwatches[0].start();
 	}
 
 	~PlayGameScene() {
@@ -204,19 +259,23 @@ public:
 	}
 
 	void draw() const override {
-		int show_phase = stopwatch.sF() / one_pannel_sec.count();
+		int show_phase = stopwatches[0].sF() / one_pannel_sec.count();
 
-		if (show_phase >= phase_nums.size() || (show_phase + 1) * one_pannel_sec.count() - stopwatch.sF() < 0.1) {
+		if (show_phase >= phase_nums.size() || (show_phase + 1) * one_pannel_sec.count() - stopwatches[0].sF() < 0.1) {
 			return;
 		}
 
 		show_font(Format(phase_nums[show_phase])).drawAt(50, Vec2{ 400, 300 });
+
+		interruptDraw();
 	}
 
 	void update() override {
-		if (stopwatch.sF() >= getData().info.all_seconds.count()) {
+		if (stopwatches[0].sF() >= getData().info.all_seconds.count()) {
 			changeScene(U"AnsScene", 0s);
 		}
+
+		interruptUpdate();
 	}
 
 private:
@@ -302,7 +361,13 @@ public:
 	}
 
 	void draw() const override {
-		font(isCorrect ? U"正解" : U"不正解").drawAt(50, Vec2{ 400, 300 });
+		if (isCorrect)
+			Circle{ 400,300, 110 }.drawFrame(10, 10, Palette::Red);
+		else {
+			Shape2D::Cross(160, 30, Vec2{ 400, 300 }).draw(Palette::Blue);
+			font(U"正解は ", getData().correct_ans).drawAt(50, Vec2{ 400,360 });
+		}
+		font(isCorrect ? U"正解！" : U"不正解・・・").drawAt(50, Vec2{ 400, 300 });
 	}
 
 	void update() override {
@@ -312,10 +377,8 @@ public:
 	}
 };
 
-
-
-void Main()
-{
+void Main() {
+	Window::SetTitle(U"flash anzan");
 	Scene::SetBackground(background_color);
 
 	App manager;
@@ -328,8 +391,7 @@ void Main()
 	manager.add<AnsScene>(U"AnsScene");
 	manager.add<ResultScene>(U"ResultScene");
 	
-	while (System::Update())
-	{
+	while (System::Update()) {
 		if (not manager.update()) {
 			break;
 		}
