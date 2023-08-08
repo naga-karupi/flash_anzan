@@ -107,6 +107,10 @@ public:
 		if (SimpleGUI::Button(U"custom", Vec2{ 300, 420 }, 120)) {
 			changeScene(U"Custom", 0s);
 		}
+
+		if (SimpleGUI::Button(U"Log", Vec2{ 700, 50 })) {
+			changeScene(U"LogScene");
+		}
 	}
 };
 
@@ -368,20 +372,17 @@ public:
 		JSON json_tmp;
 
 		json_tmp[U"result"] = (isCorrect ? U"correct" : U"uncorrect");
+		json_tmp[U"mode"] = getData().mode;
 
-		if (getData().mode == U"easy") {
-			json_tmp[U"mode"] = U"easy";
-		}
-		else if (getData().mode == U"hard") {
-			json_tmp[U"mode"] = U"hard";
-		}
-		else {
+		if (getData().mode != U"easy" && getData().mode != U"hard") {
 			json_tmp[U"seconds"] = getData().info.all_seconds.count();
 			json_tmp[U"digit"] = getData().info.digit_num;
-			json_tmp[U"phase"] = getData().info.phase_num;
+			json_tmp[U"phase"] = getData().info.phase_num;	
 		}
+		
+		
 
-		(*(getData().json_ptr))[U"result"].push_back(json_tmp);
+		(*(getData().json_ptr))[U"log"].push_back(json_tmp);
 
 		(*getData().json_ptr).save(U"history.json");
 	}
@@ -406,6 +407,44 @@ public:
 	}
 };
 
+class LogScene : public App::Scene {
+	JSON json;
+	Font log_font{ FontMethod::MSDF, 40 };
+public:
+	LogScene(const InitData& init): IScene(init) {
+		json = JSON::Load(U"history.json");
+	}
+
+	~LogScene() {
+		//pass
+	}
+
+	void draw() const override {
+		Rect{ 100, 150, 600, 350 }.draw(white_color);
+		auto size = json[U"log"].size();
+		auto& log = json[U"log"];
+
+		constexpr auto black = ColorF{ 0.0, 0.0, 0.0 };
+
+		log_font(U"直近三回の結果を表示します").drawAt(30, Vec2{ 400,75 });
+
+		const int loop_max = log.size() >= 3 ? 3 : log.size();
+
+		for (int i = 1; i <= loop_max; i++) {
+			log_font(Format(i)).draw(30, Vec2{ 150, 100 + 100 * i }, black);
+			log_font(log[size - i][U"mode"].getString()).draw(30, Vec2{ 300, 100 + 100 * i }, black);
+			log_font(log[size - i][U"result"].getString()).draw(30, Vec2{ 500, 100 + 100 * i }, black);
+		}
+
+	}
+
+	void update() override {
+		if (SimpleGUI::Button(U"戻る", Vec2{ 30, 30 })) {
+			changeScene(U"Title");
+		}
+	}
+};
+
 void Main() {
 	Window::SetTitle(U"flash anzan");
 	Scene::SetBackground(background_color);
@@ -419,6 +458,7 @@ void Main() {
 	manager.add<PlayGameScene>(U"PlayGameScene");
 	manager.add<AnsScene>(U"AnsScene");
 	manager.add<ResultScene>(U"ResultScene");
+	manager.add<LogScene>(U"LogScene");
 	
 	while (System::Update()) {
 		if (not manager.update()) {
