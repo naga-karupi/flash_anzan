@@ -11,6 +11,7 @@ struct AllInfo {
 	int answer;
 	int correct_ans;
 	String mode;
+	std::shared_ptr<JSON> json_ptr;
 };
 
 static constexpr auto white_color = ColorF{1.0, 1.0, 1.0};
@@ -66,7 +67,15 @@ class Title : public App::Scene {
 
 public:
 	Title(const InitData& init) : IScene(init) {
-		//pass
+		if (!FileSystem::IsFile(U"history.json")) {
+			JSON json;
+			json[U"app"] = U"flash_anzan";
+			json.save(U"history.json");
+			getData().json_ptr = std::make_shared<JSON>(JSON::Load(U"history.json"));
+				
+		}else
+			getData().json_ptr = std::make_shared<JSON>(JSON::Load(U"history.json"));
+
 	}
 
 	~Title() {
@@ -355,6 +364,26 @@ public:
 	ResultScene(const InitData& init) : IScene(init) {
 		Scene::SetBackground(background_color);
 		isCorrect = (getData().correct_ans == getData().answer);
+
+		JSON json_tmp;
+
+		json_tmp[U"result"] = (isCorrect ? U"correct" : U"uncorrect");
+
+		if (getData().mode == U"easy") {
+			json_tmp[U"mode"] = U"easy";
+		}
+		else if (getData().mode == U"hard") {
+			json_tmp[U"mode"] = U"hard";
+		}
+		else {
+			json_tmp[U"seconds"] = getData().info.all_seconds.count();
+			json_tmp[U"digit"] = getData().info.digit_num;
+			json_tmp[U"phase"] = getData().info.phase_num;
+		}
+
+		(*(getData().json_ptr))[U"result"].push_back(json_tmp);
+
+		(*getData().json_ptr).save(U"history.json");
 	}
 	~ResultScene() {
 		//pass
@@ -397,4 +426,6 @@ void Main() {
 		}
 		
 	}
+
+	
 }
