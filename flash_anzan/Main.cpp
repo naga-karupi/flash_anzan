@@ -70,10 +70,12 @@ public:
 		if (!FileSystem::IsFile(U"history.json")) {
 			JSON json;
 			json[U"app"] = U"flash_anzan";
+			json[U"log"].push_back(JSON(U"null"));
 			json.save(U"history.json");
 			getData().json_ptr = std::make_shared<JSON>(JSON::Load(U"history.json"));
 				
-		}else
+		}
+		else
 			getData().json_ptr = std::make_shared<JSON>(JSON::Load(U"history.json"));
 
 	}
@@ -408,11 +410,13 @@ public:
 };
 
 class LogScene : public App::Scene {
+	bool is_json_init;
 	JSON json;
 	Font log_font{ FontMethod::MSDF, 40 };
 public:
 	LogScene(const InitData& init): IScene(init) {
 		json = JSON::Load(U"history.json");
+		is_json_init = json.contains(U"log");
 	}
 
 	~LogScene() {
@@ -420,11 +424,18 @@ public:
 	}
 
 	void draw() const override {
+		constexpr auto black = ColorF{ 0.0, 0.0, 0.0 };
 		Rect{ 100, 150, 600, 350 }.draw(white_color);
+
+		if (!json.contains(U"log")) {
+			log_font(U"ログがありません").drawAt(30, Vec2{400, 300}, black);
+			return;
+		}
+
 		auto size = json[U"log"].size();
 		auto& log = json[U"log"];
 
-		constexpr auto black = ColorF{ 0.0, 0.0, 0.0 };
+		
 
 		log_font(U"直近三回の結果を表示します").drawAt(30, Vec2{ 400,75 });
 
