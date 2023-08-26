@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsd
 /Intermediate/flash_anzan/Release.zip
 /flash_anzan/App/history.json
+
+*.exe
